@@ -1,5 +1,6 @@
 import os
 import io
+import asyncio
 import logging
 import zipfile
 from datetime import datetime
@@ -171,6 +172,19 @@ async def handle_other(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 def main():
+    # Python 3.10+ (and especially 3.12+) no longer auto-creates an event
+    # loop when none exists in the current thread. python-telegram-bot's
+    # run_polling() still expects one to be retrievable via
+    # asyncio.get_event_loop(), so we create and set one explicitly here
+    # to stay compatible regardless of which Python version the host uses.
+    try:
+        loop = asyncio.get_event_loop()
+        if loop.is_closed():
+            raise RuntimeError("event loop is closed")
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+
     app = ApplicationBuilder().token(BOT_TOKEN).build()
 
     app.add_handler(CommandHandler("start", start))
